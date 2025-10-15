@@ -2,13 +2,14 @@
 
 import React, { createContext, useContext } from 'react'
 
-interface AuthContextType {}
+type AuthContextType = object
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   // No-op provider to avoid runtime errors since auth is not in use
-  return <AuthContext.Provider value={{}}>{children}</AuthContext.Provider>
+  const value: AuthContextType = {}
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {

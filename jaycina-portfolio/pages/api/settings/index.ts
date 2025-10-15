@@ -13,7 +13,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'PUT') {
     try {
-      const body = req.body as any
+      type Body = { whatsappNumber: string; siteTitle: string; siteDescription: string; heroTitle: string; heroSubtitle: string }
+      const body = req.body as Body
       const existing = await prisma.siteSettings.findFirst()
       const updated = existing
         ? await prisma.siteSettings.update({
@@ -36,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             },
           })
       return res.status(200).json(updated)
-    } catch (err) {
+    } catch (_err) {
       return res.status(500).json({ error: 'Failed to save settings' })
     }
   }

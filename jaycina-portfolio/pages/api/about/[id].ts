@@ -6,7 +6,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'PUT') {
     try {
-      const body = req.body as any
+      type Body = { title: string; content: string; order?: number }
+      const body = req.body as Body
       const updated = await prisma.aboutSection.update({
         where: { id: id as string },
         data: {
@@ -16,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       })
       return res.status(200).json(updated)
-    } catch (err) {
+    } catch (_err) {
       return res.status(500).json({ error: 'Failed to update about section' })
     }
   }
@@ -28,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         data: { isActive: false },
       })
       return res.status(200).json({ message: 'Deleted' })
-    } catch (err) {
+    } catch (_err) {
       return res.status(500).json({ error: 'Failed to delete about section' })
     }
   }

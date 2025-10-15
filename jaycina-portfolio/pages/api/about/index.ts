@@ -16,7 +16,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'POST') {
     try {
-      const body = req.body as any
+      type Body = { title: string; content: string; order?: number }
+      const body = req.body as Body
       const created = await prisma.aboutSection.create({
         data: {
           title: body.title,
@@ -26,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       })
       return res.status(201).json(created)
-    } catch (err) {
+    } catch (_err) {
       return res.status(500).json({ error: 'Failed to create about section' })
     }
   }

@@ -355,15 +355,15 @@ export default function Home(): JSX.Element {
           <h3 className="font-serif text-xl sm:text-2xl mb-6">What people say</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             <div className="p-4 sm:p-6 bg-white rounded-lg shadow-sm">
-              <div className="text-slate-700 text-sm sm:text-base">"The scarf I ordered is even softer than I imagined — perfect colour and finish. Shipping was quick!"</div>
+              <div className="text-slate-700 text-sm sm:text-base">&quot;The scarf I ordered is even softer than I imagined — perfect colour and finish. Shipping was quick!&quot;</div>
               <div className="mt-4 font-semibold text-sm sm:text-base">— Anjali</div>
             </div>
             <div className="p-4 sm:p-6 bg-white rounded-lg shadow-sm">
-              <div className="text-slate-700 text-sm sm:text-base">"Incredible attention to detail. I ordered a custom beanie and the fit was perfect."</div>
+              <div className="text-slate-700 text-sm sm:text-base">&quot;Incredible attention to detail. I ordered a custom beanie and the fit was perfect.&quot;</div>
               <div className="mt-4 font-semibold text-sm sm:text-base">— Rohit</div>
             </div>
             <div className="p-4 sm:p-6 bg-white rounded-lg shadow-sm sm:col-span-2 lg:col-span-1">
-              <div className="text-slate-700 text-sm sm:text-base">"Beautiful packaging and thoughtful note. Handmade with love."</div>
+              <div className="text-slate-700 text-sm sm:text-base">&quot;Beautiful packaging and thoughtful note. Handmade with love.&quot;</div>
               <div className="mt-4 font-semibold text-sm sm:text-base">— Meera</div>
             </div>
           </div>

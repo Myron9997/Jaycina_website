@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { prisma } from '@/lib/prisma'
 
-function toArray(input: any): string[] {
+function toArray(input: unknown): string[] {
   if (Array.isArray(input)) return input
   const str = String(input ?? '')
   if (!str) return []
@@ -32,7 +32,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } else if (req.method === 'PUT') {
     try {
-      const body = req.body as any
+      type Body = {
+        title: string
+        category: string
+        priceInr: string
+        priceGbp: string
+        short: string
+        description?: string | null
+        materials?: string[] | string
+        images?: string[] | string
+      }
+      const body = req.body as Body
       const product = await prisma.product.update({
         where: { id: id as string },
         data: {

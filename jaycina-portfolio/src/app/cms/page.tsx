@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 
 interface Product {
   id: string;
@@ -220,12 +221,7 @@ export default function CMS() {
             <p className="text-gray-600 mt-1 sm:mt-2 text-sm">Manage products, about, process and settings</p>
           </div>
           <div className="flex flex-wrap gap-2 sm:gap-3">
-            <a 
-              href="/" 
-              className="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm"
-            >
-              View Website
-            </a>
+            <Link href="/" className="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm">View Website</Link>
             {activeTab === 'products' && (
               <button
                 onClick={() => setShowForm(!showForm)}
