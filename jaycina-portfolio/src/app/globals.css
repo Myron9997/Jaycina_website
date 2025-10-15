@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: linear-gradient(180deg, #FAF9F6 0%, #F6F2EA 100%);
+  }
+  
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-6 py-3 rounded-full bg-[#A9744B] text-white text-sm font-medium shadow-sm hover:shadow transition-all active:scale-95;
+  }
+  
+  .btn-secondary {
+    @apply px-6 py-3 rounded-full border border-slate-800 text-sm font-medium hover:bg-slate-800 hover:text-white transition-all active:scale-95;
+  }
+  
+  .modal-scroll {
+    @apply scrollbar-thin overflow-y-auto;
+  }
+
+  .card-hover {
+    @apply transition-transform duration-300 hover:-translate-y-0.5 hover:shadow-md;
+  }
+}
