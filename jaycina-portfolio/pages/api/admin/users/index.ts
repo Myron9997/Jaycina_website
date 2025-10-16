@@ -1,47 +1,56 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
+import { prisma } from '@/lib/prisma'
+import { getServiceSupabase } from '@/lib/supabase'
 import bcrypt from 'bcrypt'
-import { randomUUID } from 'crypto'
-import { createClient } from '@supabase/supabase-js'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
-  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY as string
-
-  if (!supabaseUrl || !serviceRole) {
-    return res.status(500).json({ error: 'Supabase configuration missing' })
-  }
-
-  const supabase = createClient(supabaseUrl, serviceRole)
-
   if (req.method === 'GET') {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, email, created_at')
-        .order('created_at', { ascending: false })
-      if (error) return res.status(500).json({ error: error.message })
-      return res.status(200).json(Array.isArray(data) ? data : [])
-    } catch (err: any) {
-      return res.status(500).json({ error: err.message || 'Failed to fetch users' })
+      const users = await prisma.user.findMany({ select: { id: true, email: true, createdAt: true } })
+      return res.status(200).json(users)
+    } catch (_err) {
+      try {
+        const supa = getServiceSupabase()
+        const { data, error } = await supa.from('users').select('id,email,created_at')
+        if (error) throw error
+        return res.status(200).json(
+          (data || []).map((u: any) => ({ id: u.id, email: u.email, createdAt: u.created_at }))
+        )
+      } catch (err2: any) {
+        return res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? String(err2?.message || err2) : 'Failed to fetch users' })
+      }
     }
   }
 
   if (req.method === 'POST') {
     try {
-      const { email, password } = req.body as { email?: string; password?: string }
+      const body = req.body as { email?: string; password?: string }
+      const email = String(body.email || '').trim().toLowerCase()
+      const password = String(body.password || '')
       if (!email || !password) return res.status(400).json({ error: 'Email and password required' })
-      const passwordHash = await bcrypt.hash(password, 12)
-      const id = randomUUID()
-      const now = new Date().toISOString()
-      const { data, error } = await supabase
-        .from('users')
-        .insert({ id, email, password_hash: passwordHash, created_at: now, updated_at: now })
-        .select('id, email, created_at')
-        .single()
-      if (error) return res.status(500).json({ error: error.message })
-      return res.status(201).json(data)
-    } catch (err: any) {
-      return res.status(500).json({ error: err.message || 'Failed to create user' })
+
+      const passwordHash = await bcrypt.hash(password, 10)
+      const created = await prisma.user.create({ data: { email, passwordHash } })
+      return res.status(201).json({ id: created.id, email: created.email, createdAt: created.createdAt })
+    } catch (_err) {
+      try {
+        const body = req.body as { email?: string; password?: string }
+        const email = String(body.email || '').trim().toLowerCase()
+        const password = String(body.password || '')
+        if (!email || !password) return res.status(400).json({ error: 'Email and password required' })
+
+        const passwordHash = await bcrypt.hash(password, 10)
+        const supa = getServiceSupabase()
+        const { data, error } = await supa
+          .from('users')
+          .insert({ email, password_hash: passwordHash })
+          .select('id,email,created_at')
+          .single()
+        if (error) throw error
+        return res.status(201).json({ id: data.id, email: data.email, createdAt: data.created_at })
+      } catch (err2: any) {
+        return res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? String(err2?.message || err2) : 'Failed to create user' })
+      }
     }
   }
 

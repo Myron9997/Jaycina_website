@@ -23,6 +23,8 @@ export default function Home(): JSX.Element {
   const [siteSettings, setSiteSettings] = useState<{ siteTitle?: string; siteDescription?: string; heroTitle?: string; heroSubtitle?: string; whatsappNumber?: string; productCategories?: string[]; logoUrl?: string; madeInLocation?: string; materialsLine?: string }>({});
   const [aboutSections, setAboutSections] = useState<{ id: string; title: string; content: string; order: number }[]>([]);
   const [processSteps, setProcessSteps] = useState<{ id: string; title: string; description: string; imageUrl: string; order: number }[]>([]);
+  const [testimonials, setTestimonials] = useState<Array<{ id: string; content: string; author: string; order: number }>>([]);
+  const [submittingTestimonial, setSubmittingTestimonial] = useState(false);
   const [modalProduct, setModalProduct] = useState<Product | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [imageLoading, setImageLoading] = useState<{[key: string]: boolean}>({});
@@ -42,6 +44,12 @@ export default function Home(): JSX.Element {
       .then((r) => r.json())
       .then((data) => setProcessSteps(Array.isArray(data) ? data : []))
       .catch(() => setProcessSteps([]))
+
+    // Testimonials
+    fetch('/api/testimonials')
+      .then((r) => r.json())
+      .then((data) => setTestimonials(Array.isArray(data) ? data : []))
+      .catch(() => setTestimonials([]))
   }, [])
 
   const categoriesFromSettings = Array.isArray(siteSettings.productCategories) ? siteSettings.productCategories : undefined
@@ -367,19 +375,51 @@ export default function Home(): JSX.Element {
         {/* Mobile-optimized Testimonials */}
         <section className="py-8 sm:py-12">
           <h3 className="font-serif text-xl sm:text-2xl mb-6">What people say</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            <div className="p-4 sm:p-6 bg-white rounded-lg shadow-sm">
-              <div className="text-slate-700 text-sm sm:text-base">&quot;The scarf I ordered is even softer than I imagined — perfect colour and finish. Shipping was quick!&quot;</div>
-              <div className="mt-4 font-semibold text-sm sm:text-base">— Anjali</div>
+          {testimonials.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {testimonials.sort((a,b)=>a.order-b.order).map((t) => (
+                <div key={t.id} className="p-4 sm:p-6 bg-white rounded-lg shadow-sm">
+                  <div className="text-slate-700 text-sm sm:text-base">{t.content}</div>
+                  <div className="mt-4 font-semibold text-sm sm:text-base">— {t.author || 'Anonymous'}</div>
+                </div>
+              ))}
             </div>
-            <div className="p-4 sm:p-6 bg-white rounded-lg shadow-sm">
-              <div className="text-slate-700 text-sm sm:text-base">&quot;Incredible attention to detail. I ordered a custom beanie and the fit was perfect.&quot;</div>
-              <div className="mt-4 font-semibold text-sm sm:text-base">— Rohit</div>
-            </div>
-            <div className="p-4 sm:p-6 bg-white rounded-lg shadow-sm sm:col-span-2 lg:col-span-1">
-              <div className="text-slate-700 text-sm sm:text-base">&quot;Beautiful packaging and thoughtful note. Handmade with love.&quot;</div>
-              <div className="mt-4 font-semibold text-sm sm:text-base">— Meera</div>
-            </div>
+          ) : (
+            <div className="text-slate-600">No testimonials yet.</div>
+          )}
+
+          {/* Public submission form */}
+          <div className="mt-8 p-4 sm:p-6 bg-white rounded-lg shadow-sm">
+            <h4 className="font-semibold mb-3">Share your experience</h4>
+            <form onSubmit={async (e) => {
+              e.preventDefault()
+              const fd = new FormData(e.target as HTMLFormElement)
+              const payload = {
+                content: String(fd.get('content') || ''),
+                author: String(fd.get('author') || 'Anonymous'),
+                order: testimonials.length + 1,
+              }
+              if (!payload.content.trim()) return
+              setSubmittingTestimonial(true)
+              try {
+                const res = await fetch('/api/testimonials', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+                const data = await res.json().catch(() => ({}))
+                if (!res.ok) throw new Error(data.error || 'Failed to submit')
+                setTestimonials((prev) => [...prev, data])
+                ;(e.target as HTMLFormElement).reset()
+                alert('Thanks for sharing!')
+              } catch (err: any) {
+                alert(err.message || 'Failed to submit')
+              } finally {
+                setSubmittingTestimonial(false)
+              }
+            }} className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-start">
+              <textarea name="content" rows={3} required placeholder="Your message" className="sm:col-span-2 border border-slate-300 rounded-md px-3 py-2" />
+              <div className="flex flex-col gap-2">
+                <input name="author" placeholder="Your name (optional)" className="border border-slate-300 rounded-md px-3 py-2" />
+                <button type="submit" disabled={submittingTestimonial} className="px-4 py-2 rounded-md bg-[#A9744B] text-white disabled:opacity-50">{submittingTestimonial ? 'Submitting…' : 'Submit'}</button>
+              </div>
+            </form>
           </div>
         </section>
 

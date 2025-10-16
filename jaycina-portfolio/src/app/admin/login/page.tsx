@@ -1,17 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 
 export default function AdminLogin(): JSX.Element {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,10 +31,6 @@ export default function AdminLogin(): JSX.Element {
     }
   }
 
-  if (!mounted) {
-    return <div className="min-h-screen bg-gray-50" />;
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -48,7 +39,7 @@ export default function AdminLogin(): JSX.Element {
       </div>
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={onSubmit} autoComplete="off">
+          <form className="space-y-6" onSubmit={onSubmit}>
             <div>
               <label className="block text-sm font-medium text-gray-700">Email</label>
               <input
@@ -56,9 +47,8 @@ export default function AdminLogin(): JSX.Element {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                name="email"
-                autoComplete="off"
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                suppressHydrationWarning
               />
             </div>
             <div>
@@ -68,9 +58,8 @@ export default function AdminLogin(): JSX.Element {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                name="password"
-                autoComplete="new-password"
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                suppressHydrationWarning
               />
             </div>
             {error && <div className="text-red-600 text-sm text-center">{error}</div>}
@@ -78,7 +67,6 @@ export default function AdminLogin(): JSX.Element {
               type="submit"
               disabled={loading}
               className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
-              suppressHydrationWarning
             >
               {loading ? "Signing in..." : "Sign in"}
             </button>

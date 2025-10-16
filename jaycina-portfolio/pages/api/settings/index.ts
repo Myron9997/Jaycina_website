@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { prisma } from '@/lib/prisma'
+import { getServiceSupabase } from '@/lib/supabase'
 
 // Keys we support for site settings
 const SUPPORTED_KEYS = [
@@ -29,9 +30,22 @@ function normalizeCategoryName(input: string): string {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
     try {
-      const rows = await prisma.siteSettings.findMany({
-        where: { key: { in: SUPPORTED_KEYS as unknown as string[] } },
-      })
+      let rows: Array<{ key: string; value: string | null }> = []
+      try {
+        rows = await prisma.siteSettings.findMany({
+          where: { key: { in: SUPPORTED_KEYS as unknown as string[] } },
+          select: { key: true, value: true },
+        })
+      } catch {
+        // Prisma unreachable: fall back to Supabase HTTP
+        const supa = getServiceSupabase()
+        const { data, error } = await supa
+          .from('site_settings')
+          .select('key,value')
+          .in('key', SUPPORTED_KEYS as unknown as string[])
+        if (error) throw error
+        rows = data as any
+      }
 
       const result: Record<string, unknown> = {
         whatsappNumber: '',
@@ -59,8 +73,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       return res.status(200).json(result)
-    } catch (_err) {
-      return res.status(500).json({ error: 'Failed to fetch settings' })
+    } catch (err: any) {
+      console.error('GET /api/settings failed:', err)
+      const msg = process.env.NODE_ENV !== 'production' ? String(err?.message || err) : 'Failed to fetch settings'
+      return res.status(500).json({ error: msg })
     }
   }
 
@@ -69,14 +85,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       type Body = { whatsappNumber?: string; siteTitle?: string; siteDescription?: string; heroTitle?: string; heroSubtitle?: string; productCategories?: string[]; logoUrl?: string; madeInLocation?: string; materialsLine?: string }
       const body = (req.body ?? {}) as Body
 
-      // Build upsert operations for provided keys only
+      // Try Prisma first
+      let usedSupabase = false
       const ops = SUPPORTED_KEYS
-        .filter((k) => typeof body[k] === 'string')
+        .filter((k) => typeof (body as any)[k] === 'string')
         .map((k) =>
           prisma.siteSettings.upsert({
             where: { key: k },
-            update: { value: String(body[k] ?? '') },
-            create: { key: k, value: String(body[k] ?? '') },
+            update: { value: String((body as any)[k] ?? '') },
+            create: { key: k, value: String((body as any)[k] ?? '') },
           })
         )
 
@@ -105,10 +122,52 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         )
       }
 
-      await prisma.$transaction(ops)
+      try {
+        await prisma.$transaction(ops)
+      } catch {
+        // Fall back to Supabase HTTP upserts per key
+        const supa = getServiceSupabase()
+        usedSupabase = true
+        const nowIso = new Date().toISOString()
+        for (const k of SUPPORTED_KEYS) {
+          const val = (body as any)[k]
+          if (typeof val !== 'string') continue
+          const { error } = await supa
+            .from('site_settings')
+            .upsert({ id: crypto.randomUUID(), key: k, value: String(val), created_at: nowIso, updated_at: nowIso }, { onConflict: 'key' })
+          if (error) throw error
+        }
+        if (Array.isArray(body.productCategories)) {
+          const { error } = await supa
+            .from('site_settings')
+            .upsert({ id: crypto.randomUUID(), key: 'productCategories', value: JSON.stringify(body.productCategories), created_at: nowIso, updated_at: nowIso }, { onConflict: 'key' })
+          if (error) throw error
+        }
+      }
 
       // Return the latest values
-      const rows = await prisma.siteSettings.findMany({ where: { key: { in: SUPPORTED_KEYS as unknown as string[] } } })
+      let rows = [] as any[]
+      if (!usedSupabase) {
+        try {
+          rows = await prisma.siteSettings.findMany({ where: { key: { in: SUPPORTED_KEYS as unknown as string[] } } })
+        } catch {
+          const supa = getServiceSupabase()
+          const { data, error } = await supa
+            .from('site_settings')
+            .select('key,value')
+            .in('key', SUPPORTED_KEYS as unknown as string[])
+          if (error) throw error
+          rows = data as any
+        }
+      } else {
+        const supa = getServiceSupabase()
+        const { data, error } = await supa
+          .from('site_settings')
+          .select('key,value')
+          .in('key', SUPPORTED_KEYS as unknown as string[])
+        if (error) throw error
+        rows = data as any
+      }
       const result: Record<string, unknown> = { whatsappNumber: '', siteTitle: '', siteDescription: '', heroTitle: '', heroSubtitle: '', productCategories: [], logoUrl: '', madeInLocation: 'Goa, India', materialsLine: 'Alpaca · Merino · Cotton blends' }
       for (const row of rows) {
         if (!(SUPPORTED_KEYS as readonly string[]).includes(row.key)) continue
@@ -120,13 +179,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       return res.status(200).json(result)
-    } catch (_err) {
-      return res.status(500).json({ error: 'Failed to save settings' })
+    } catch (err: any) {
+      console.error('PUT /api/settings failed:', err)
+      const msg = process.env.NODE_ENV !== 'production' ? String(err?.message || err) : 'Failed to save settings'
+      return res.status(500).json({ error: msg })
     }
   }
 
   res.setHeader('Allow', ['GET', 'PUT'])
   return res.status(405).end(`Method ${req.method} Not Allowed`)
+}
+
+// Increase body size limit for settings updates (e.g., long arrays or strings)
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '5mb',
+    },
+  },
 }
 
 

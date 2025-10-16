@@ -40,6 +40,7 @@ export default function CMS() {
   const [products, setProducts] = useState<Product[]>([]);
   const [aboutSections, setAboutSections] = useState<AboutSection[]>([]);
   const [processSteps, setProcessSteps] = useState<{ id: string; title: string; description: string; imageUrl: string; order: number }[]>([]);
+  const [testimonials, setTestimonials] = useState<Array<{ id: string; content: string; author: string; order: number }>>([])
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({
     whatsappNumber: 'YOUR_NUMBER_HERE',
     siteTitle: 'Jaycina',
@@ -91,6 +92,12 @@ export default function CMS() {
       .then((r) => r.json())
       .then((data) => { if (data) setSiteSettings(data) })
       .catch(() => {})
+
+    // Testimonials
+    fetch('/api/testimonials')
+      .then((r) => r.json())
+      .then((data) => setTestimonials(Array.isArray(data) ? data : []))
+      .catch(() => setTestimonials([]))
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -746,7 +753,6 @@ export default function CMS() {
           </div>
         )}
 
-        {/* Admin Users Panel */}
         {activeTab === 'settings' && (
           <div className="bg-white rounded-lg shadow-md p-6 mt-6">
             <h2 className="text-xl font-semibold mb-4">Admin Users</h2>
@@ -809,6 +815,75 @@ export default function CMS() {
           </div>
         )}
 
+        {/* Testimonials Tab Inline (under Process for now) */}
+        <div className="space-y-6 mt-6">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold mb-4">Add Testimonial</h2>
+            <form onSubmit={async (e) => {
+              e.preventDefault()
+              const fd = new FormData(e.target as HTMLFormElement)
+              const payload = {
+                content: String(fd.get('content') || ''),
+                author: String(fd.get('author') || 'Anonymous'),
+                order: testimonials.length + 1,
+              }
+              const res = await fetch('/api/testimonials', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+              if (!res.ok) {
+                const err = await res.json().catch(() => ({}))
+                alert(err.error || 'Failed to add testimonial')
+                return
+              }
+              const created = await res.json()
+              setTestimonials((prev) => [...prev, created])
+              ;(e.target as HTMLFormElement).reset()
+            }} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Content</label>
+                <textarea name="content" rows={3} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Author (optional)</label>
+                <input name="author" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Anonymous" />
+              </div>
+              <button className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">Add Testimonial</button>
+            </form>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold mb-4">Current Testimonials ({testimonials.length})</h2>
+            <div className="space-y-3">
+              {testimonials.sort((a,b)=>a.order-b.order).map((t) => (
+                <div key={t.id} className="border border-gray-200 rounded-lg p-4 flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-sm text-gray-800">{t.content}</div>
+                    <div className="text-xs text-gray-500 mt-1">— {t.author || 'Anonymous'}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={async () => {
+                        if (!confirm('Delete this testimonial?')) return
+                        const res = await fetch(`/api/testimonials/${t.id}`, { method: 'DELETE' })
+                        const data = await res.json().catch(() => ({}))
+                        if (!res.ok) {
+                          alert(data.error || 'Failed to delete')
+                          return
+                        }
+                        setTestimonials((prev) => prev.filter((x) => x.id !== t.id))
+                      }}
+                      className="text-red-600 hover:underline text-sm"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {testimonials.length === 0 && (
+                <div className="text-sm text-gray-500">No testimonials yet.</div>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* removed demo next steps */}
       </div>
       {showEdit && editingProduct && (
@@ -820,115 +895,6 @@ export default function CMS() {
       )}
     </div>
   );
-}
-function AdminUsersPanel() {
-  const [users, setUsers] = React.useState<Array<{ id: string; email: string; created_at: string }>>([])
-  const [loading, setLoading] = React.useState(false)
-  const [form, setForm] = React.useState<{ email: string; password: string }>({ email: '', password: '' })
-
-  async function refresh() {
-    setLoading(true)
-    try {
-      const res = await fetch('/api/admin/users')
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to load users')
-      setUsers(Array.isArray(data) ? data : [])
-    } catch (err: any) {
-      alert(err.message || 'Failed to load users')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  React.useEffect(() => { refresh() }, [])
-
-  async function createUser(e: React.FormEvent) {
-    e.preventDefault()
-    if (!form.email || !form.password) return alert('Email and password required')
-    setLoading(true)
-    try {
-      const res = await fetch('/api/admin/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to create user')
-      setForm({ email: '', password: '' })
-      await refresh()
-    } catch (err: any) {
-      alert(err.message || 'Failed to create user')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function deleteUser(id: string) {
-    if (!confirm('Delete this admin user?')) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || 'Failed to delete user')
-      await refresh()
-    } catch (err: any) {
-      alert(err.message || 'Failed to delete user')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div className="space-y-6">
-      <form onSubmit={createUser} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <input
-          type="email"
-          placeholder="admin@example.com"
-          value={form.email}
-          onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-          className="border border-gray-300 rounded-md px-3 py-2"
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={form.password}
-          onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-          className="border border-gray-300 rounded-md px-3 py-2"
-        />
-        <button type="submit" disabled={loading} className="bg-slate-900 text-white rounded-md px-4 py-2 disabled:opacity-50">
-          {loading ? 'Saving…' : 'Add Admin'}
-        </button>
-      </form>
-
-      <div className="border rounded-lg overflow-hidden">
-        <table className="min-w-full text-sm">
-          <thead className="bg-slate-50">
-            <tr>
-              <th className="text-left px-3 py-2 border-b">Email</th>
-              <th className="text-left px-3 py-2 border-b">Created</th>
-              <th className="text-right px-3 py-2 border-b">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u) => (
-              <tr key={u.id} className="border-b last:border-b-0">
-                <td className="px-3 py-2">{u.email}</td>
-                <td className="px-3 py-2">{new Date(u.created_at).toLocaleString()}</td>
-                <td className="px-3 py-2 text-right">
-                  <button onClick={() => deleteUser(u.id)} disabled={loading} className="text-red-600 hover:underline disabled:opacity-50">Delete</button>
-                </td>
-              </tr>
-            ))}
-            {users.length === 0 && (
-              <tr>
-                <td className="px-3 py-4 text-slate-500" colSpan={3}>No admin users yet.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
 }
 
 // Edit Modal
@@ -1038,6 +1004,112 @@ function EditModal({ product, onClose, onSaved }: { product: Product; onClose: (
             <button type="submit" disabled={saving} className="px-4 py-2 rounded bg-blue-600 text-white disabled:opacity-50">{saving ? 'Saving...' : 'Save'}</button>
           </div>
         </form>
+      </div>
+    </div>
+  )
+}
+
+function AdminUsersPanel() {
+  const [users, setUsers] = React.useState<Array<{ id: string; email: string; created_at?: string; createdAt?: string }>>([])
+  const [loading, setLoading] = React.useState(false)
+  const [form, setForm] = React.useState<{ email: string; password: string }>({ email: '', password: '' })
+
+  async function refresh() {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin/users')
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to load users')
+      setUsers(Array.isArray(data) ? data : [])
+    } catch (err: any) {
+      alert(err.message || 'Failed to load users')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  React.useEffect(() => { refresh() }, [])
+
+  async function createUser(e: React.FormEvent) {
+    e.preventDefault()
+    if (!form.email || !form.password) return alert('Email and password required')
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to create user')
+      setForm({ email: '', password: '' })
+      await refresh()
+    } catch (err: any) {
+      alert(err.message || 'Failed to create user')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function deleteUser(id: string) {
+    if (!confirm('Delete this admin user?')) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Failed to delete user')
+      await refresh()
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete user')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <form onSubmit={createUser} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <input
+          type="email"
+          placeholder="admin@example.com"
+          value={form.email}
+          onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+          className="border border-gray-300 rounded-md px-3 py-2"
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={form.password}
+          onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+          className="border border-gray-300 rounded-md px-3 py-2"
+        />
+        <button type="submit" disabled={loading} className="bg-slate-900 text-white rounded-md px-4 py-2 disabled:opacity-50">
+          {loading ? 'Saving…' : 'Add Admin'}
+        </button>
+      </form>
+
+      <div className="border rounded-lg overflow-hidden">
+        <table className="min-w-full text-sm">
+          <thead className="bg-slate-50">
+            <tr>
+              <th className="text-left px-3 py-2 border-b">Email</th>
+              <th className="text-left px-3 py-2 border-b">Created</th>
+              <th className="text-right px-3 py-2 border-b">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((u) => (
+              <tr key={u.id} className="border-b last:border-b-0">
+                <td className="px-3 py-2">{u.email}</td>
+                <td className="px-3 py-2">{new Date(u.createdAt || (u as any).created_at || Date.now()).toLocaleString()}</td>
+                <td className="px-3 py-2 text-right">
+                  <button onClick={() => deleteUser(u.id)} disabled={loading} className="text-red-600 hover:underline disabled:opacity-50">Delete</button>
+                </td>
+              </tr>
+            ))}
+            {users.length === 0 && (
+              <tr>
+                <td className="px-3 py-4 text-slate-500" colSpan={3}>No admin users yet.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   )
