@@ -14,6 +14,8 @@ const SUPPORTED_KEYS = [
   'logoUrl',
   'madeInLocation',
   'materialsLine',
+  'instagramUrl',
+  'facebookUrl',
 ] as const
 
 type SupportedKey = typeof SUPPORTED_KEYS[number]
@@ -57,6 +59,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         logoUrl: '',
         madeInLocation: 'Goa, India',
         materialsLine: 'Alpaca · Merino · Cotton blends',
+        instagramUrl: '',
+        facebookUrl: '',
       }
 
       for (const row of rows) {
@@ -82,7 +86,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'PUT') {
     try {
-      type Body = { whatsappNumber?: string; siteTitle?: string; siteDescription?: string; heroTitle?: string; heroSubtitle?: string; productCategories?: string[]; logoUrl?: string; madeInLocation?: string; materialsLine?: string }
+      type Body = { whatsappNumber?: string; siteTitle?: string; siteDescription?: string; heroTitle?: string; heroSubtitle?: string; productCategories?: string[]; logoUrl?: string; madeInLocation?: string; materialsLine?: string; instagramUrl?: string; facebookUrl?: string }
       const body = (req.body ?? {}) as Body
 
       // Try Prisma first
@@ -168,7 +172,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (error) throw error
         rows = data as any
       }
-      const result: Record<string, unknown> = { whatsappNumber: '', siteTitle: '', siteDescription: '', heroTitle: '', heroSubtitle: '', productCategories: [], logoUrl: '', madeInLocation: 'Goa, India', materialsLine: 'Alpaca · Merino · Cotton blends' }
+      const result: Record<string, unknown> = { whatsappNumber: '', siteTitle: '', siteDescription: '', heroTitle: '', heroSubtitle: '', productCategories: [], logoUrl: '', madeInLocation: 'Goa, India', materialsLine: 'Alpaca · Merino · Cotton blends', instagramUrl: '', facebookUrl: '' }
       for (const row of rows) {
         if (!(SUPPORTED_KEYS as readonly string[]).includes(row.key)) continue
         if (row.key === 'productCategories') {

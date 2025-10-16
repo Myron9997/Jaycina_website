@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { prisma } from '@/lib/prisma'
+import { getServiceSupabase } from '@/lib/supabase'
 
 function toArray(input: unknown): string[] {
   if (Array.isArray(input)) return input
@@ -58,21 +59,60 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
 
       res.status(200).json(product)
-    } catch (error) {
-      console.error('Error updating product:', error)
-      res.status(500).json({ error: 'Failed to update product' })
+    } catch (_error) {
+      try {
+        const supa = getServiceSupabase()
+        const body = req.body as any
+        const { data, error } = await supa
+          .from('products')
+          .update({
+            title: body.title,
+            category: body.category,
+            price_inr: body.priceInr,
+            price_gbp: body.priceGbp,
+            short: body.short,
+            description: body.description ?? null,
+            materials: toArray(body.materials),
+            images: toArray(body.images).filter(isValidUrl),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', id as string)
+          .select()
+          .single()
+        if (error) throw error
+        res.status(200).json({
+          id: data.id,
+          title: data.title,
+          category: data.category,
+          priceInr: data.price_inr,
+          priceGbp: data.price_gbp,
+          short: data.short,
+          description: data.description ?? null,
+          materials: data.materials || [],
+          images: data.images || [],
+        })
+      } catch (error) {
+        console.error('Error updating product:', error)
+        res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? String((error as any)?.message || error) : 'Failed to update product' })
+      }
     }
   } else if (req.method === 'DELETE') {
     try {
-      await prisma.product.update({
-        where: { id: id as string },
-        data: { isActive: false }
-      })
-
+      await prisma.product.update({ where: { id: id as string }, data: { isActive: false } })
       res.status(200).json({ message: 'Product deleted' })
-    } catch (error) {
-      console.error('Error deleting product:', error)
-      res.status(500).json({ error: 'Failed to delete product' })
+    } catch (_error) {
+      try {
+        const supa = getServiceSupabase()
+        const { error } = await supa
+          .from('products')
+          .update({ is_active: false, updated_at: new Date().toISOString() })
+          .eq('id', id as string)
+        if (error) throw error
+        res.status(200).json({ message: 'Product deleted' })
+      } catch (error) {
+        console.error('Error deleting product:', error)
+        res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? String((error as any)?.message || error) : 'Failed to delete product' })
+      }
     }
   } else {
     res.setHeader('Allow', ['GET', 'PUT', 'DELETE'])

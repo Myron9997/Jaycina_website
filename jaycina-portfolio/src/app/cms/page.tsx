@@ -33,6 +33,8 @@ interface SiteSettings {
   logoUrl?: string;
   madeInLocation?: string;
   materialsLine?: string;
+  instagramUrl?: string;
+  facebookUrl?: string;
 }
 
 export default function CMS() {
@@ -51,12 +53,17 @@ export default function CMS() {
     logoUrl: '',
     madeInLocation: 'Goa, India',
     materialsLine: 'Alpaca · Merino · Cotton blends',
+    instagramUrl: '',
+    facebookUrl: '',
   });
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showEdit, setShowEdit] = useState(false);
+  const imagesInputRef = React.useRef<HTMLInputElement>(null)
+  const [savingSettings, setSavingSettings] = React.useState(false)
+  const [settingsSaved, setSettingsSaved] = React.useState<null | string>(null)
   const [categorySelection, setCategorySelection] = useState<string>('');
   
   async function signOut() {
@@ -179,14 +186,22 @@ export default function CMS() {
   };
 
   const handleSettingsSave = async () => {
-    const res = await fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(siteSettings) });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      alert(err.error || 'Failed to save settings');
-      return;
+    setSavingSettings(true)
+    setSettingsSaved(null)
+    try {
+      const res = await fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(siteSettings) });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || 'Failed to save settings');
+        return;
+      }
+      const saved = await res.json();
+      setSiteSettings(saved);
+      setSettingsSaved('Settings saved')
+      setTimeout(() => setSettingsSaved(null), 2500)
+    } finally {
+      setSavingSettings(false)
     }
-    const saved = await res.json();
-    setSiteSettings(saved);
   };
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -203,11 +218,9 @@ export default function CMS() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Upload failed')
-      // Auto-insert URL into Images input
-      const input = (document.getElementsByName('images')[0] as HTMLInputElement)
-      if (input) {
-        input.value = (input.value ? input.value + ', ' : '') + data.url
-      }
+      // Auto-insert URL into Add Product images input (scoped via ref)
+      const input = imagesInputRef.current
+      if (input) input.value = (input.value ? input.value + ', ' : '') + data.url
     } catch (err: any) {
       alert(err.message || 'Upload failed')
     } finally {
@@ -259,7 +272,7 @@ export default function CMS() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white px-4 sm:px-6 lg:px-8 py-6">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white px-4 sm:px-6 lg:px-8 py-6" suppressHydrationWarning>
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
           <div className="flex items-center gap-3">
@@ -435,11 +448,12 @@ export default function CMS() {
                 />
               </div>
               
-              <div>
+                <div>
                 <label className="block text-sm font-medium text-gray-700">Image URLs (comma-separated)</label>
                 <input
                   type="text"
                   name="images"
+                    ref={imagesInputRef}
                   placeholder="https://images.unsplash.com/photo-1, https://images.unsplash.com/photo-2"
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
@@ -633,6 +647,29 @@ export default function CMS() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Instagram URL</label>
+                  <input
+                    type="url"
+                    value={siteSettings.instagramUrl || ''}
+                    onChange={(e) => setSiteSettings((prev) => ({ ...prev, instagramUrl: e.target.value }))}
+                    placeholder="https://www.instagram.com/weave_and_glow_magic"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Facebook URL</label>
+                  <input
+                    type="url"
+                    value={siteSettings.facebookUrl || ''}
+                    onChange={(e) => setSiteSettings((prev) => ({ ...prev, facebookUrl: e.target.value }))}
+                    placeholder="https://facebook.com/your-page"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Product Categories</label>
                 <p className="text-xs text-gray-500 mb-2">Manage the list used in the product form dropdown.</p>
@@ -745,10 +782,12 @@ export default function CMS() {
 
               <button
                 onClick={handleSettingsSave}
-                className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-60"
+                disabled={savingSettings}
               >
-                Save Settings
+                {savingSettings ? 'Saving…' : 'Save Settings'}
               </button>
+              {settingsSaved && <span className="ml-3 text-sm text-green-700">{settingsSaved}</span>}
             </div>
           </div>
         )}
@@ -815,7 +854,8 @@ export default function CMS() {
           </div>
         )}
 
-        {/* Testimonials Tab Inline (under Process for now) */}
+        {/* Testimonials controls (Settings only) */}
+        {activeTab === 'settings' && (
         <div className="space-y-6 mt-6">
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-semibold mb-4">Add Testimonial</h2>
@@ -883,6 +923,7 @@ export default function CMS() {
             </div>
           </div>
         </div>
+        )}
 
         {/* removed demo next steps */}
       </div>
@@ -938,8 +979,13 @@ function EditModal({ product, onClose, onSaved }: { product: Product; onClose: (
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Upload failed')
-      // auto-append URL to images
-      setForm((prev) => ({ ...prev, images: [...(prev.images || []), data.url] }))
+      // Replace main image (first) with the newly uploaded URL
+      setForm((prev) => {
+        const current = Array.isArray(prev.images) ? prev.images : []
+        if (current.length === 0) return { ...prev, images: [data.url] }
+        const next = [data.url, ...current.slice(1)]
+        return { ...prev, images: next }
+      })
     } catch (err: any) {
       alert(err.message || 'Upload failed')
     } finally {

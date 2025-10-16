@@ -44,6 +44,10 @@
     -moz-osx-font-smoothing: grayscale;
     background: linear-gradient(180deg, #FAF9F6 0%, #F6F2EA 100%);
   }
+  h1, .h1 { font-weight: 700; }
+  h2, .h2 { font-weight: 600; }
+  h3, .h3 { font-weight: 600; }
+  p, li { line-height: 1.6; }
   
   img {
     max-width: 100%;
@@ -53,11 +57,11 @@
 
 @layer components {
   .btn-primary {
-    @apply px-6 py-3 rounded-full bg-[#A9744B] text-white text-sm font-medium shadow-sm hover:shadow transition-all active:scale-95;
+    @apply px-5 sm:px-6 py-2.5 sm:py-3 rounded-full bg-[#A9744B] text-white text-sm font-medium shadow-sm hover:shadow transition-all active:scale-95;
   }
   
   .btn-secondary {
-    @apply px-6 py-3 rounded-full border border-slate-800 text-sm font-medium hover:bg-slate-800 hover:text-white transition-all active:scale-95;
+    @apply px-5 sm:px-6 py-2.5 sm:py-3 rounded-full border border-slate-800 text-sm font-medium hover:bg-slate-800 hover:text-white transition-all active:scale-95;
   }
   
   .modal-scroll {
