@@ -212,8 +212,8 @@ export default function CMS() {
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Jaycina CMS</h1>
-            <p className="text-gray-600 mt-2">Content Management System for your crochet portfolio</p>
+            <h1 className="text-3xl font-bold text-gray-900">Weave and Glow Magic Dashboard</h1>
+            <p className="text-gray-600 mt-2">Admin dashboard for your crochet portfolio</p>
           </div>
           <div className="flex gap-4">
             <a 
@@ -295,11 +295,7 @@ export default function CMS() {
                         className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       >
                         <option value="">Select Category</option>
-                        <option value="Scarves">Scarves</option>
-                        <option value="Beanies">Beanies</option>
-                        <option value="Gloves">Gloves</option>
-                        <option value="Woolen T-Shirts">Woolen T-Shirts</option>
-                        <option value="Bags">Bags</option>
+            {/* Categories are now managed via the full CMS settings in /cms. This demo leaves category free text. */}
                       </select>
                     </div>
                     <div>

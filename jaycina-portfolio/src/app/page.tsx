@@ -20,7 +20,7 @@ const WHATSAPP_NUMBER = "YOUR_NUMBER_HERE"; // e.g. 919999888777 (replace)
 
 export default function Home(): JSX.Element {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
-  const [siteSettings, setSiteSettings] = useState<{ siteTitle?: string; siteDescription?: string; heroTitle?: string; heroSubtitle?: string; whatsappNumber?: string }>({});
+  const [siteSettings, setSiteSettings] = useState<{ siteTitle?: string; siteDescription?: string; heroTitle?: string; heroSubtitle?: string; whatsappNumber?: string; productCategories?: string[]; logoUrl?: string; madeInLocation?: string; materialsLine?: string }>({});
   const [aboutSections, setAboutSections] = useState<{ id: string; title: string; content: string; order: number }[]>([]);
   const [processSteps, setProcessSteps] = useState<{ id: string; title: string; description: string; imageUrl: string; order: number }[]>([]);
   const [modalProduct, setModalProduct] = useState<Product | null>(null);
@@ -44,7 +44,15 @@ export default function Home(): JSX.Element {
       .catch(() => setProcessSteps([]))
   }, [])
 
-  const categories = ["All", ...Array.from(new Set(products.map((p) => p.category)))];
+  const categoriesFromSettings = Array.isArray(siteSettings.productCategories) ? siteSettings.productCategories : undefined
+  const categories = [
+    "All",
+    ...(
+      categoriesFromSettings && categoriesFromSettings.length > 0
+        ? categoriesFromSettings
+        : Array.from(new Set(products.map((p) => p.category)))
+    )
+  ];
 
   const filtered = selectedCategory === "All" ? products : products.filter((p) => p.category === selectedCategory);
 
@@ -96,7 +104,13 @@ export default function Home(): JSX.Element {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-[#E8D7C0] to-[#CFA57A] flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-sm">J</div>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-gradient-to-br from-[#E8D7C0] to-[#CFA57A] flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-sm">
+                {siteSettings.logoUrl ? (
+                  <img src={siteSettings.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  <span>J</span>
+                )}
+              </div>
               <div>
                 <h1 className="font-serif text-xl sm:text-2xl md:text-3xl">{siteSettings.siteTitle || 'Jaycina'}</h1>
                 <p className="text-xs sm:text-sm text-slate-600 hidden sm:block">{siteSettings.siteDescription || 'Handmade crochet & wool creations'}</p>
@@ -200,11 +214,11 @@ export default function Home(): JSX.Element {
             <div className="mt-8 sm:mt-10 grid grid-cols-2 gap-4 sm:gap-6 text-sm text-slate-600">
               <div>
                 <div className="font-semibold">Made in</div>
-                <div className="text-xs sm:text-sm">Goa, India</div>
+                <div className="text-xs sm:text-sm">{siteSettings.madeInLocation || 'Goa, India'}</div>
               </div>
               <div>
                 <div className="font-semibold">Materials</div>
-                <div className="text-xs sm:text-sm">Alpaca · Merino · Cotton blends</div>
+                <div className="text-xs sm:text-sm">{siteSettings.materialsLine || 'Alpaca · Merino · Cotton blends'}</div>
               </div>
             </div>
           </div>

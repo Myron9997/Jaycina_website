@@ -29,6 +29,10 @@ interface SiteSettings {
   siteDescription: string;
   heroTitle: string;
   heroSubtitle: string;
+  productCategories?: string[];
+  logoUrl?: string;
+  madeInLocation?: string;
+  materialsLine?: string;
 }
 
 export default function CMS() {
@@ -41,13 +45,18 @@ export default function CMS() {
     siteTitle: 'Jaycina',
     siteDescription: 'Handmade crochet & wool creations',
     heroTitle: 'Handmade crochet, crafted with patience.',
-    heroSubtitle: 'Scarves, beanies, gloves, cosy woolen tees and woven bags — every piece made by hand with care. Bespoke orders welcome.'
+    heroSubtitle: 'Scarves, beanies, gloves, cosy woolen tees and woven bags — every piece made by hand with care. Bespoke orders welcome.',
+    productCategories: [],
+    logoUrl: '',
+    madeInLocation: 'Goa, India',
+    materialsLine: 'Alpaca · Merino · Cotton blends',
   });
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showEdit, setShowEdit] = useState(false);
+  const [categorySelection, setCategorySelection] = useState<string>('');
   
   async function signOut() {
     try {
@@ -87,11 +96,13 @@ export default function CMS() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
+    const selected = String(formData.get('category') || '')
+    const category = selected === '__custom__' ? String(formData.get('categoryCustom') || '') : selected
     
     const productData: Product = {
       id: `p-${Date.now()}`,
       title: formData.get('title') as string,
-      category: formData.get('category') as string,
+      category,
       priceInr: formData.get('priceInr') as string,
       priceGbp: formData.get('priceGbp') as string,
       short: formData.get('short') as string,
@@ -198,6 +209,34 @@ export default function CMS() {
     }
   }
 
+  // Upload helper for process step imageUrl input
+  async function handleProcessImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    setUploadProgress(0)
+    try {
+      const base64 = await toBase64WithProgress(file, (p) => setUploadProgress(Math.round(p)))
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileBase64: base64, filename: file.name }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Upload failed')
+      // Auto-insert URL into Process Step imageUrl input
+      const input = (document.getElementsByName('imageUrl')[0] as HTMLInputElement)
+      if (input) {
+        input.value = data.url
+      }
+    } catch (err: any) {
+      alert(err.message || 'Upload failed')
+    } finally {
+      setUploading(false)
+      setUploadProgress(0)
+    }
+  }
+
   function toBase64WithProgress(file: File, onProgress: (percent: number) => void) {
     return new Promise<string>((resolve, reject) => {
       const reader = new FileReader()
@@ -213,75 +252,58 @@ export default function CMS() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white px-4 sm:px-6 lg:px-8 py-6">
       <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Jaycina CMS</h1>
-            <p className="text-gray-600 mt-1 sm:mt-2 text-sm">Manage products, about, process and settings</p>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl overflow-hidden bg-gradient-to-br from-amber-300 to-rose-300 flex items-center justify-center shadow-sm">
+              {siteSettings.logoUrl ? (
+                <img src={siteSettings.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                <span className="font-semibold text-white">WG</span>
+              )}
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold text-slate-900 tracking-tight">Weave and Glow Magic Dashboard</h1>
+              <p className="text-slate-600 mt-1 text-xs sm:text-sm">Minimal, mobile-friendly admin for products, about, process & settings</p>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2 sm:gap-3">
-            <Link href="/" className="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm">View Website</Link>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             {activeTab === 'products' && (
               <button
                 onClick={() => setShowForm(!showForm)}
-                className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                className="inline-flex items-center gap-2 rounded-lg bg-slate-900 text-white px-3 py-2 text-sm shadow-sm hover:opacity-95 active:scale-95 transition"
               >
-                {showForm ? 'Cancel' : 'Add Product'}
+                <span className="hidden sm:inline">{showForm ? 'Cancel' : 'Add Product'}</span>
+                <span className="sm:hidden">{showForm ? 'Cancel' : 'Add'}</span>
               </button>
             )}
-            <button
-              onClick={signOut}
-              className="border border-gray-300 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-sm"
-            >
-              Log out
-            </button>
+            <Link href="/" className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white text-slate-700 px-3 py-2 text-sm shadow-sm hover:bg-slate-50 active:scale-95 transition">View Site</Link>
+            <button onClick={signOut} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white text-slate-700 px-3 py-2 text-sm shadow-sm hover:bg-slate-50 active:scale-95 transition">Log out</button>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="mb-6 -mx-4 px-4">
-          <nav className="flex gap-6 overflow-x-auto no-scrollbar pb-1">
-            <button
-              onClick={() => setActiveTab('products')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'products'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Products ({products.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('about')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'about'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              About Sections ({aboutSections.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'settings'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Site Settings
-            </button>
-            <button
-              onClick={() => setActiveTab('process')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'process'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Process Steps ({processSteps.length})
-            </button>
+        <div className="mb-6 -mx-2 px-2">
+          <nav className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+            {([
+              { key: 'products', label: `Products (${products.length})` },
+              { key: 'about', label: `About Sections (${aboutSections.length})` },
+              { key: 'settings', label: 'Site Settings' },
+              { key: 'process', label: `Process Steps (${processSteps.length})` },
+            ] as const).map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setActiveTab(t.key as any)}
+                className={`whitespace-nowrap rounded-full px-4 py-2 text-sm transition border ${
+                  activeTab === (t.key as any)
+                    ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
           </nav>
         </div>
 
@@ -305,18 +327,53 @@ export default function CMS() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Category</label>
-                  <select
-                    name="category"
-                    required
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select Category</option>
-                    <option value="Scarves">Scarves</option>
-                    <option value="Beanies">Beanies</option>
-                    <option value="Gloves">Gloves</option>
-                    <option value="Woolen T-Shirts">Woolen T-Shirts</option>
-                    <option value="Bags">Bags</option>
-                  </select>
+                  <div className="space-y-2">
+                    <select
+                      name="category"
+                      required
+                      value={categorySelection}
+                      onChange={(e) => setCategorySelection(e.target.value)}
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Select Category</option>
+                      {(siteSettings.productCategories || []).map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                      <option value="__custom__">+ Add new…</option>
+                    </select>
+                    {categorySelection === '__custom__' && (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          name="categoryCustom"
+                          placeholder="Enter new category"
+                          className="flex-1 block border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <button
+                          type="button"
+                          className="px-3 py-2 border rounded text-sm"
+                          onClick={async (e) => {
+                            const input = (e.currentTarget.previousSibling as HTMLInputElement)
+                            const value = (input?.value || '').trim()
+                            if (!value) return
+                            const next = Array.from(new Set([...(siteSettings.productCategories || []), value]))
+                            const payload = { ...siteSettings, productCategories: next }
+                            const res = await fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+                            if (!res.ok) {
+                              const err = await res.json().catch(() => ({}))
+                              alert(err.error || 'Failed to save category')
+                              return
+                            }
+                            const saved = await res.json()
+                            setSiteSettings(saved)
+                            setCategorySelection(value)
+                          }}
+                        >
+                          Save & Use
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Price (INR)</label>
@@ -546,6 +603,139 @@ export default function CMS() {
                 />
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Made In Location</label>
+                  <input
+                    type="text"
+                    value={siteSettings.madeInLocation || ''}
+                    onChange={(e) => setSiteSettings((prev) => ({ ...prev, madeInLocation: e.target.value }))}
+                    placeholder="e.g., Goa, India"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Materials Line</label>
+                  <input
+                    type="text"
+                    value={siteSettings.materialsLine || ''}
+                    onChange={(e) => setSiteSettings((prev) => ({ ...prev, materialsLine: e.target.value }))}
+                    placeholder="e.g., Alpaca · Merino · Cotton blends"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Product Categories</label>
+                <p className="text-xs text-gray-500 mb-2">Manage the list used in the product form dropdown.</p>
+                <div className="space-y-2">
+                  {(siteSettings.productCategories || []).map((c, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={c}
+                        onChange={(e) => setSiteSettings((prev) => ({
+                          ...prev,
+                          productCategories: (prev.productCategories || []).map((pc, i) => i === idx ? e.target.value : pc)
+                        }))}
+                        className="flex-1 border border-gray-300 rounded-md px-3 py-2"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setSiteSettings((prev) => ({
+                          ...prev,
+                          productCategories: (prev.productCategories || []).filter((_, i) => i !== idx)
+                        }))}
+                        className="text-sm px-3 py-2 border rounded"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Add new category"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          const value = (e.target as HTMLInputElement).value.trim()
+                          if (!value) return
+                          setSiteSettings((prev) => ({
+                            ...prev,
+                            productCategories: [...(prev.productCategories || []), value]
+                          }))
+                          ;(e.target as HTMLInputElement).value = ''
+                        }
+                      }}
+                      className="flex-1 border border-gray-300 rounded-md px-3 py-2"
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        const input = (e.currentTarget.previousSibling as HTMLInputElement)
+                        const value = input.value.trim()
+                        if (!value) return
+                        setSiteSettings((prev) => ({
+                          ...prev,
+                          productCategories: [...(prev.productCategories || []), value]
+                        }))
+                        input.value = ''
+                      }}
+                      className="text-sm px-3 py-2 border rounded"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Logo</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="text"
+                    placeholder="https://..."
+                    value={siteSettings.logoUrl || ''}
+                    onChange={(e) => setSiteSettings((prev) => ({ ...prev, logoUrl: e.target.value }))}
+                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      setUploading(true)
+                      setUploadProgress(0)
+                      try {
+                        const base64 = await toBase64WithProgress(file, (p) => setUploadProgress(Math.round(p)))
+                        const res = await fetch('/api/admin/upload', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ fileBase64: base64, filename: file.name }),
+                        })
+                        const data = await res.json()
+                        if (!res.ok) throw new Error(data.error || 'Upload failed')
+                        setSiteSettings((prev) => ({ ...prev, logoUrl: data.url }))
+                      } catch (err: any) {
+                        alert(err.message || 'Upload failed')
+                      } finally {
+                        setUploading(false)
+                        setUploadProgress(0)
+                      }
+                    }}
+                  />
+                </div>
+                {uploading && <div className="text-xs text-gray-600 mt-1">Uploading… {uploadProgress}%</div>}
+                {siteSettings.logoUrl && (
+                  <div className="mt-3">
+                    <img src={siteSettings.logoUrl} alt="Logo preview" className="h-12 w-12 rounded-lg object-cover border" />
+                  </div>
+                )}
+              </div>
+
               <button
                 onClick={handleSettingsSave}
                 className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
@@ -553,6 +743,14 @@ export default function CMS() {
                 Save Settings
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Admin Users Panel */}
+        {activeTab === 'settings' && (
+          <div className="bg-white rounded-lg shadow-md p-6 mt-6">
+            <h2 className="text-xl font-semibold mb-4">Admin Users</h2>
+            <AdminUsersPanel />
           </div>
         )}
 
@@ -584,6 +782,12 @@ export default function CMS() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Image URL</label>
                     <input name="imageUrl" className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" placeholder="https://..." />
+                    <div className="mt-2 flex items-center gap-3">
+                      <input type="file" accept="image/*" onChange={handleProcessImageUpload} disabled={uploading} />
+                      {uploading && (
+                        <div className="text-xs text-gray-600">Uploading… {uploadProgress}%</div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div>
@@ -616,6 +820,115 @@ export default function CMS() {
       )}
     </div>
   );
+}
+function AdminUsersPanel() {
+  const [users, setUsers] = React.useState<Array<{ id: string; email: string; created_at: string }>>([])
+  const [loading, setLoading] = React.useState(false)
+  const [form, setForm] = React.useState<{ email: string; password: string }>({ email: '', password: '' })
+
+  async function refresh() {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin/users')
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to load users')
+      setUsers(Array.isArray(data) ? data : [])
+    } catch (err: any) {
+      alert(err.message || 'Failed to load users')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  React.useEffect(() => { refresh() }, [])
+
+  async function createUser(e: React.FormEvent) {
+    e.preventDefault()
+    if (!form.email || !form.password) return alert('Email and password required')
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form)
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to create user')
+      setForm({ email: '', password: '' })
+      await refresh()
+    } catch (err: any) {
+      alert(err.message || 'Failed to create user')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function deleteUser(id: string) {
+    if (!confirm('Delete this admin user?')) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Failed to delete user')
+      await refresh()
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete user')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <form onSubmit={createUser} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <input
+          type="email"
+          placeholder="admin@example.com"
+          value={form.email}
+          onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+          className="border border-gray-300 rounded-md px-3 py-2"
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={form.password}
+          onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+          className="border border-gray-300 rounded-md px-3 py-2"
+        />
+        <button type="submit" disabled={loading} className="bg-slate-900 text-white rounded-md px-4 py-2 disabled:opacity-50">
+          {loading ? 'Saving…' : 'Add Admin'}
+        </button>
+      </form>
+
+      <div className="border rounded-lg overflow-hidden">
+        <table className="min-w-full text-sm">
+          <thead className="bg-slate-50">
+            <tr>
+              <th className="text-left px-3 py-2 border-b">Email</th>
+              <th className="text-left px-3 py-2 border-b">Created</th>
+              <th className="text-right px-3 py-2 border-b">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((u) => (
+              <tr key={u.id} className="border-b last:border-b-0">
+                <td className="px-3 py-2">{u.email}</td>
+                <td className="px-3 py-2">{new Date(u.created_at).toLocaleString()}</td>
+                <td className="px-3 py-2 text-right">
+                  <button onClick={() => deleteUser(u.id)} disabled={loading} className="text-red-600 hover:underline disabled:opacity-50">Delete</button>
+                </td>
+              </tr>
+            ))}
+            {users.length === 0 && (
+              <tr>
+                <td className="px-3 py-4 text-slate-500" colSpan={3}>No admin users yet.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
 }
 
 // Edit Modal
