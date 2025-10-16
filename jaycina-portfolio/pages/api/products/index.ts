@@ -35,16 +35,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } else if (req.method === 'POST') {
     try {
-      type Body = { title: string; category: string; priceInr: string; priceGbp: string; short: string; description?: string | null; materials?: string[] | string; images?: string[] | string }
-      const body = req.body as Body
+      type Body = { title?: string; category?: string; priceInr?: string; priceGbp?: string; short?: string; description?: string | null; materials?: string[] | string; images?: string[] | string }
+      const body = (req.body ?? {}) as Body
       const product = await prisma.product.create({
         data: {
-          title: body.title,
-          category: body.category,
-          priceInr: body.priceInr,
-          priceGbp: body.priceGbp,
-          short: body.short,
-          description: body.description ?? null,
+          title: String(body.title || ''),
+          category: String(body.category || ''),
+          priceInr: String(body.priceInr || ''),
+          priceGbp: String(body.priceGbp || ''),
+          short: String(body.short || ''),
+          description: body.description?.toString() ?? null,
           materials: toArray(body.materials),
           images: toArray(body.images).filter(isValidUrl),
           isActive: true,
@@ -54,19 +54,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } catch (_err) {
       try {
         const supa = getServiceSupabase()
-        const body = req.body as any
+        const body = (req.body ?? {}) as any
+        const nowIso = new Date().toISOString()
         const { data, error } = await supa
           .from('products')
           .insert({
-            title: body.title,
-            category: body.category,
-            price_inr: body.priceInr,
-            price_gbp: body.priceGbp,
-            short: body.short,
-            description: body.description ?? null,
+            id: crypto.randomUUID(),
+            title: String(body.title || ''),
+            category: String(body.category || ''),
+            price_inr: String(body.priceInr || ''),
+            price_gbp: String(body.priceGbp || ''),
+            short: String(body.short || ''),
+            description: body.description?.toString() ?? null,
             materials: toArray(body.materials),
             images: toArray(body.images).filter(isValidUrl),
             is_active: true,
+            created_at: nowIso,
+            updated_at: nowIso,
           })
           .select()
           .single()

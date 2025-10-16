@@ -340,7 +340,6 @@ export default function CMS() {
                   <input
                     type="text"
                     name="title"
-                    required
                     placeholder="e.g., Alpaca Knit Scarf — Ochre"
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
@@ -348,9 +347,8 @@ export default function CMS() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Category</label>
                   <div className="space-y-2">
-                    <select
-                      name="category"
-                      required
+                  <select
+                    name="category"
                       value={categorySelection}
                       onChange={(e) => setCategorySelection(e.target.value)}
                       className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -400,7 +398,6 @@ export default function CMS() {
                   <input
                     type="text"
                     name="priceInr"
-                    required
                     placeholder="e.g., ₹2,500"
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
@@ -410,7 +407,6 @@ export default function CMS() {
                   <input
                     type="text"
                     name="priceGbp"
-                    required
                     placeholder="e.g., £25"
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
@@ -421,7 +417,6 @@ export default function CMS() {
                 <label className="block text-sm font-medium text-gray-700">Short Description</label>
                 <textarea
                   name="short"
-                  required
                   rows={2}
                   placeholder="Brief description for product cards"
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -930,6 +925,7 @@ export default function CMS() {
       {showEdit && editingProduct && (
         <EditModal
           product={editingProduct}
+          categories={siteSettings.productCategories || []}
           onClose={() => setShowEdit(false)}
           onSaved={(updated) => setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))}
         />
@@ -939,7 +935,7 @@ export default function CMS() {
 }
 
 // Edit Modal
-function EditModal({ product, onClose, onSaved }: { product: Product; onClose: () => void; onSaved: (p: Product) => void }) {
+function EditModal({ product, onClose, onSaved, categories = [] }: { product: Product; onClose: () => void; onSaved: (p: Product) => void; categories?: string[] }) {
   const [form, setForm] = React.useState<Product>(product)
   const [saving, setSaving] = React.useState(false)
   const [uploading, setUploading] = React.useState(false)
@@ -1018,7 +1014,20 @@ function EditModal({ product, onClose, onSaved }: { product: Product; onClose: (
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Category</label>
-              <input className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+              {categories.length > 0 ? (
+                <select
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                  value={categories.includes(form.category) ? form.category : ''}
+                  onChange={(e) => setForm({ ...form, category: e.target.value })}
+                >
+                  <option value="">Select Category</option>
+                  {categories.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              ) : (
+                <input className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Price (INR)</label>

@@ -329,22 +329,71 @@ export default function HomeClient({
           </div>
         )}
       </main>
+      {mounted && modalProduct && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setModalProduct(null)}>
+          <div className="bg-white rounded-xl shadow-xl max-w-5xl w-full max-h-[95vh] overflow-hidden flex flex-col" onClick={(e)=>e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-white rounded-t-xl">
+              <h3 className="font-serif text-lg sm:text-xl font-semibold truncate pr-4">{modalProduct.title}</h3>
+              <button onClick={() => setModalProduct(null)} className="p-2 rounded-full hover:bg-slate-100 transition-colors flex-shrink-0" aria-label="Close modal">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <div className="grid grid-cols-1 lg:grid-cols-2">
+                <div className="p-4 lg:p-6 bg-slate-50 space-y-4">
+                  <img src={modalProduct.images?.[0]} alt={modalProduct.title} className="w-full h-64 sm:h-80 lg:h-96 object-cover rounded-lg shadow-sm" />
+                  {modalProduct.images?.slice(1).map((src, i) => (
+                    <img key={i} src={src} alt={`${modalProduct.title}-${i+1}`} className="w-full h-32 sm:h-40 object-cover rounded-lg shadow-sm" />
+                  ))}
+                </div>
+                <div className="p-4 lg:p-6 flex flex-col">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-serif text-xl sm:text-2xl font-semibold">{modalProduct.title}</h4>
+                      <div className="text-slate-600 mt-2 text-sm sm:text-base">{modalProduct.short}</div>
+                    </div>
+                    <div className="text-xl sm:text-2xl font-bold text-[#A9744B] ml-4">{modalProduct.priceInr} / {modalProduct.priceGbp}</div>
+                  </div>
+                  <div className="mt-4 text-slate-700 flex-1">
+                    <h5 className="font-semibold text-base sm:text-lg mb-3">Materials</h5>
+                    <ul className="list-disc list-inside ml-4 space-y-1 text-sm sm:text-base text-slate-600">
+                      {modalProduct.materials?.map((m, i) => (<li key={i}>{m}</li>))}
+                    </ul>
+                    {modalProduct.description && (
+                      <>
+                        <h5 className="font-semibold text-base sm:text-lg mt-6 mb-3">Details</h5>
+                        <p className="text-sm sm:text-base text-slate-600 leading-relaxed">{modalProduct.description}</p>
+                      </>
+                    )}
+                  </div>
+                  <div className="mt-8 pt-4 border-t border-slate-200">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                      <button onClick={() => openWhatsApp(modalProduct)} className="flex-1 px-6 py-3 rounded-full bg-[#A9744B] text-white text-sm sm:text-base font-medium hover:opacity-95 transition-opacity active:scale-95">Order on WhatsApp</button>
+                      <button onClick={() => setModalProduct(null)} className="flex-1 px-6 py-3 rounded-full border border-slate-300 text-slate-700 text-sm sm:text-base font-medium hover:bg-slate-50 transition-colors active:scale-95">Close</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
-      <footer className="py-8 sm:py-12 border-t border-slate-100">
-        <div className="flex flex-col gap-6 text-center sm:text-left">
+        <footer className="py-8 sm:py-12 border-t border-slate-100">
+          <div className="flex flex-col gap-6 text-center sm:text-center">
           <div>
             <div className="font-serif text-lg sm:text-xl">{siteSettings.siteTitle || 'Jaycina'}</div>
             <div className="text-sm text-slate-600">Handmade crochet & woolwear — Goa</div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 sm:gap-6">
+            <div className="flex flex-wrap items-center justify-center sm:justify-center gap-4 sm:gap-6">
             <a href="#about" className="text-sm hover:underline transition-colors">About</a>
             <a href="#collection" className="text-sm hover:underline transition-colors">Collection</a>
             <a href="#howto" className="text-sm hover:underline transition-colors">Order</a>
           </div>
 
-          <div className="flex items-center justify-center sm:justify-start gap-4">
+            <div className="flex items-center justify-center sm:justify-center gap-4">
             {siteSettings.whatsappNumber && (
               <a
                 href={`https://wa.me/${siteSettings.whatsappNumber}`}

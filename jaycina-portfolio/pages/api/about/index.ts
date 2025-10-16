@@ -36,9 +36,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       try {
         const supa = getServiceSupabase()
         const body = req.body as { title: string; content: string; order?: number }
+        const now = new Date().toISOString()
         const { data, error } = await supa
           .from('about_sections')
-          .insert({ title: body.title, content: body.content, order: Number(body.order ?? 0), is_active: true })
+          .insert({ id: crypto.randomUUID(), title: body.title, content: body.content, order: Number(body.order ?? 0), is_active: true, created_at: now, updated_at: now })
           .select()
           .single()
         if (error) throw error
